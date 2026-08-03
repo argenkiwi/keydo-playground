@@ -37,6 +37,29 @@ const EXAMPLES: Record<string, string> = {
   'dvorak-layout': dvorakLayoutConfig,
 };
 
+// Map from standard W3C KeyboardEvent.code -> keydo linux/evdev keycode
+const DOM_CODE_TO_KEYDO: Record<string, number> = {
+  'Escape': 1,
+  'Digit1': 2, 'Digit2': 3, 'Digit3': 4, 'Digit4': 5, 'Digit5': 6,
+  'Digit6': 7, 'Digit7': 8, 'Digit8': 9, 'Digit9': 10, 'Digit0': 11,
+  'Minus': 12, 'Equal': 13, 'Backspace': 14, 'Tab': 15,
+  'KeyQ': 16, 'KeyW': 17, 'KeyE': 18, 'KeyR': 19, 'KeyT': 20,
+  'KeyY': 21, 'KeyU': 22, 'KeyI': 23, 'KeyO': 24, 'KeyP': 25,
+  'BracketLeft': 26, 'BracketRight': 27, 'Enter': 28, 'ControlLeft': 29,
+  'KeyA': 30, 'KeyS': 31, 'KeyD': 32, 'KeyF': 33, 'KeyG': 34,
+  'KeyH': 35, 'KeyJ': 36, 'KeyK': 37, 'KeyL': 38, 'Semicolon': 39,
+  'Quote': 40, 'Backquote': 41, 'ShiftLeft': 42, 'Backslash': 43,
+  'KeyZ': 44, 'KeyX': 45, 'KeyC': 46, 'KeyV': 47, 'KeyB': 48,
+  'KeyN': 49, 'KeyM': 50, 'Comma': 51, 'Period': 52, 'Slash': 53,
+  'ShiftRight': 54, 'NumpadMultiply': 55, 'AltLeft': 56, 'Space': 57,
+  'CapsLock': 58, 'F1': 59, 'F2': 60, 'F3': 61, 'F4': 62, 'F5': 63,
+  'F6': 64, 'F7': 65, 'F8': 66, 'F9': 67, 'F10': 68,
+  'ControlRight': 97, 'AltRight': 100, 'Home': 102, 'ArrowUp': 103,
+  'PageUp': 104, 'ArrowLeft': 105, 'ArrowRight': 106, 'End': 107,
+  'ArrowDown': 108, 'PageDown': 109, 'Insert': 110, 'Delete': 111,
+  'MetaLeft': 125, 'MetaRight': 126,
+};
+
 // Keyboard layout definition (QWERTY)
 const KEYBOARD_ROWS = [
   [
@@ -116,9 +139,11 @@ class PlaygroundApp {
   private currentKbd: any = null;
   private startTime = Date.now();
   private debounceTimer: number | null = null;
+  private heldPhysicalKeys = new Set<string>();
 
   // UI Elements
   private editor = document.getElementById('config-editor') as HTMLTextAreaElement;
+  private testInputBox = document.getElementById('test-input-box') as HTMLInputElement;
   private statusIndicator = document.getElementById('config-status') as HTMLDivElement;
   private errorBanner = document.getElementById('editor-error-banner') as HTMLDivElement;
   private layerBadges = document.getElementById('layer-badges') as HTMLDivElement;
@@ -137,6 +162,7 @@ class PlaygroundApp {
 
       this.renderVirtualKeyboard();
       this.bindEvents();
+      this.bindPhysicalKeyListeners();
 
       // Load default example
       this.editor.value = EXAMPLES['vim-nav'];
@@ -212,6 +238,8 @@ class PlaygroundApp {
     this.resetBtn.addEventListener('click', () => {
       if (this.currentKbd) {
         this.wasm.reset_keyboard(this.currentKbd);
+        this.heldPhysicalKeys.clear();
+        this.clearVisualPressedKeys();
         this.updateLayerBadges([]);
         this.appendLogNotice('Keyboard state reset.');
       }
@@ -221,6 +249,57 @@ class PlaygroundApp {
     this.clearLogBtn.addEventListener('click', () => {
       this.eventLog.innerHTML = '<div class="log-empty">Log cleared.</div>';
     });
+  }
+
+  private bindPhysicalKeyListeners() {
+    window.addEventListener('keydown', (e) => {
+      // Do not capture physical key events when typing inside the config editor textarea
+      if (document.activeElement === this.editor) {
+        return;
+      }
+
+      const keydoCode = DOM_CODE_TO_KEYDO[e.code];
+      if (keydoCode !== undefined) {
+        // Prevent default browser behavior (tab focus, space scroll, etc.) when testing keys
+        e.preventDefault();
+
+        if (!this.heldPhysicalKeys.has(e.code)) {
+          this.heldPhysicalKeys.add(e.code);
+          this.handleKeyEvent(keydoCode, 1);
+          this.setVisualKeyState(keydoCode, true);
+        }
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (document.activeElement === this.editor) {
+        return;
+      }
+
+      const keydoCode = DOM_CODE_TO_KEYDO[e.code];
+      if (keydoCode !== undefined) {
+        e.preventDefault();
+        this.heldPhysicalKeys.delete(e.code);
+        this.handleKeyEvent(keydoCode, 0);
+        this.setVisualKeyState(keydoCode, false);
+      }
+    });
+  }
+
+  private setVisualKeyState(code: number, pressed: boolean) {
+    const keyEl = this.keyboardContainer.querySelector(`.kb-key[data-code="${code}"]`);
+    if (keyEl) {
+      if (pressed) {
+        keyEl.classList.add('pressed');
+      } else {
+        keyEl.classList.remove('pressed');
+      }
+    }
+  }
+
+  private clearVisualPressedKeys() {
+    const keys = this.keyboardContainer.querySelectorAll('.kb-key.pressed');
+    keys.forEach(k => k.classList.remove('pressed'));
   }
 
   private rebuildKeyboard() {
