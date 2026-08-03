@@ -139,6 +139,7 @@ class PlaygroundApp {
   private currentKbd: any = null;
   private startTime = Date.now();
   private debounceTimer: number | null = null;
+  private chordTimeoutTimer: number | null = null;
   private heldPhysicalKeys = new Set<string>();
 
   // UI Elements
@@ -237,6 +238,7 @@ class PlaygroundApp {
     // Reset button
     this.resetBtn.addEventListener('click', () => {
       if (this.currentKbd) {
+        this.clearChordTimeout();
         this.wasm.reset_keyboard(this.currentKbd);
         this.heldPhysicalKeys.clear();
         this.clearVisualPressedKeys();
@@ -303,6 +305,7 @@ class PlaygroundApp {
   }
 
   private rebuildKeyboard() {
+    this.clearChordTimeout();
     const text = this.editor.value;
     try {
       const config = this.wasm.parse_config(text);
@@ -322,10 +325,25 @@ class PlaygroundApp {
   }
 
   private handleKeyEvent(code: number, pressed: number) {
+    const timestamp = Date.now() - this.startTime;
+    this.processEvents([{ code, pressed, timestamp }]);
+  }
+
+  private clearChordTimeout() {
+    if (this.chordTimeoutTimer !== null) {
+      clearTimeout(this.chordTimeoutTimer);
+      this.chordTimeoutTimer = null;
+    }
+  }
+
+  // Pending chords (and overloads/oneshots) resolve on elapsed time as much as
+  // on key events. The wasm state machine can only detect that elapsed time
+  // via a synthetic code=0 "tick" event, so next_timeout_ms tells us when to
+  // feed it one if no real key event arrives first.
+  private processEvents(events: { code: number; pressed: number; timestamp: number }[]) {
     if (!this.currentKbd) return;
 
-    const timestamp = Date.now() - this.startTime;
-    const events = [{ code, pressed, timestamp }];
+    this.clearChordTimeout();
 
     const rawRes = this.wasm.process_events(this.currentKbd, JSON.stringify(events));
     const res: ProcessResult = JSON.parse(rawRes);
@@ -336,6 +354,14 @@ class PlaygroundApp {
 
     if (res.layers) {
       this.updateLayerBadges(res.layers);
+    }
+
+    if (res.next_timeout_ms > 0) {
+      this.chordTimeoutTimer = window.setTimeout(() => {
+        this.chordTimeoutTimer = null;
+        const tickTimestamp = Date.now() - this.startTime;
+        this.processEvents([{ code: 0, pressed: 0, timestamp: tickTimestamp }]);
+      }, res.next_timeout_ms);
     }
   }
 
