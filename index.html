@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>keydo Playground — Interactive Config Tester</title>
+    <meta name="description" content="Test keydo keyboard remapping configurations and layouts live in your browser powered by WebAssembly." />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./src/index.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="app-header">
+        <div class="brand">
+          <span class="logo">⌨️</span>
+          <div>
+            <h1>keydo <span class="tag">playground</span></h1>
+            <p class="subtitle">Client-side WebAssembly configuration tester</p>
+          </div>
+        </div>
+
+        <div class="header-controls">
+          <div class="select-group">
+            <label for="example-select">Example Config:</label>
+            <select id="example-select">
+              <option value="vim-nav">Vim Navigation Layer</option>
+              <option value="homerow-mods">Home Row Modifiers</option>
+              <option value="chords">Key Chording (j+k -> Esc)</option>
+              <option value="dvorak-layout">Dvorak Layout</option>
+            </select>
+          </div>
+
+          <button id="btn-reset-state" class="btn btn-secondary" title="Reset all active layers and held keys">
+            🔄 Reset State
+          </button>
+        </div>
+      </header>
+
+      <main class="playground-layout">
+        <!-- Editor Panel -->
+        <section class="panel editor-panel">
+          <div class="panel-header">
+            <h2>Configuration Editor</h2>
+            <div class="status-indicator" id="config-status">
+              <span class="dot dot-success"></span> Ready
+            </div>
+          </div>
+          <div class="editor-container">
+            <textarea id="config-editor" spellcheck="false" placeholder="Enter keydo configuration here..."></textarea>
+          </div>
+          <div id="editor-error-banner" class="error-banner hidden"></div>
+        </section>
+
+        <!-- Keyboard Visualizer Panel -->
+        <section class="panel keyboard-panel">
+          <div class="panel-header">
+            <h2>Interactive Keyboard</h2>
+            <span class="panel-subtitle">Click keys to trigger events</span>
+          </div>
+
+          <div class="layer-bar-container">
+            <span class="layer-bar-label">Active Layers:</span>
+            <div id="layer-badges" class="layer-badges"></div>
+          </div>
+
+          <div class="keyboard-container" id="virtual-keyboard"></div>
+
+          <div class="instructions">
+            <p>💡 Click and hold keys on the virtual keyboard or use physical keys to test overloads and layers.</p>
+          </div>
+        </section>
+
+        <!-- Output Log Panel -->
+        <section class="panel log-panel">
+          <div class="panel-header">
+            <h2>Output Event Stream</h2>
+            <button id="btn-clear-log" class="btn btn-small">Clear Log</button>
+          </div>
+          <div class="log-stream" id="event-log">
+            <div class="log-empty">No events captured yet. Click keyboard keys to test.</div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
