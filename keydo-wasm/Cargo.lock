@@ -300,7 +300,7 @@ dependencies = [
 [[package]]
 name = "keydo"
 version = "0.2.3"
-source = "git+https://github.com/argenkiwi/keydo?tag=keydo-wasm-lib-v0.2.3#534f762cb0e85ef65f1fa973ef2b152abdf1522e"
+source = "git+https://github.com/argenkiwi/keydo?rev=6825de4f23493386c04add5c865b60da103a7b45#6825de4f23493386c04add5c865b60da103a7b45"
 dependencies = [
  "clap",
  "env_logger",
