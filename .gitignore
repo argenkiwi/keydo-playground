@@ -17,3 +17,4 @@ yarn-error.log*
 
 # Rust Build Target (in case cargo is run inside playground/keydo-wasm)
 target/
+/.azk
