@@ -299,8 +299,8 @@ dependencies = [
 
 [[package]]
 name = "keydo"
-version = "0.3.3"
-source = "git+https://github.com/argenkiwi/keydo?rev=9c072ee90c369080643094f9c07ffc2579e9044c#9c072ee90c369080643094f9c07ffc2579e9044c"
+version = "0.3.4"
+source = "git+https://github.com/argenkiwi/keydo?rev=99b8c9f24664ea7ce06617d468855ef937a76b28#99b8c9f24664ea7ce06617d468855ef937a76b28"
 dependencies = [
  "clap",
  "env_logger",
